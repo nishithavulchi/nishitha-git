@@ -1,0 +1,54 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureSubscription: 'test-sc'
+  appName: 'app-nishi-test'
+  pythonVersion: '3.11'
+
+steps:
+
+# =========================
+# 1. Set Python Version
+# =========================
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(pythonVersion)'
+  displayName: 'Use Python $(pythonVersion)'
+
+
+# =========================
+# 2. Install Dependencies
+# =========================
+- script: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install dependencies'
+
+
+# =========================
+# 3. Create ZIP Package
+# =========================
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+    includeRootFolder: false
+    archiveType: zip
+    archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+    replaceExistingArchive: true
+  displayName: 'Archive files'
+
+
+# =========================
+# 4. Deploy to Azure App Service
+# =========================
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    appType: webAppLinux
+    appName: '$(appName)'
+    package: '$(Build.ArtifactStagingDirectory)/app.zip'
+  displayName: 'Deploy to Azure Web App'
